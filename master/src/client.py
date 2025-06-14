@@ -1,5 +1,7 @@
 from websockets.legacy.server import WebSocketServerProtocol
 from typing import Set, Self
+
+from shared.message import RegisterWorker
 from .logger import logger
 
 
@@ -16,9 +18,15 @@ class Client:
         return Client._connected_clients
 
     def __init__(self, websocket: WebSocketServerProtocol):
-        self._id = len(Client.clients())
-        self._connected_clients.add(self)
+        self._id: int = -1
         self._websocket = websocket
+
+    async def register(self):
+        self._id = len(Client._connected_clients)
+        logger.info(
+            f"Registered new worker node with an ID of {self.id()} (Remote IP: {self.remote_address()})")
+        Client._connected_clients.add(self)
+        await self._websocket.send(RegisterWorker(sender="master", worker_id=self.id()).serialize())
 
     def unregister(self):
         logger.info(

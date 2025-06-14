@@ -1,33 +1,33 @@
 import asyncio
 import threading
-import yaml
 from websockets.asyncio.server import serve
 from websockets import ConnectionClosed
 from websockets.legacy.server import WebSocketServerProtocol
-from .client import Client
-from .logger import logger
-from .changehandler import ChangeHandler
+from master.src.client import Client
+from master.src.logger import logger
+from master.src.changehandler import ChangeHandler
 from watchdog.observers import Observer
-import os
-
-from master.src.config import Config
-
-
-PORT = os.environ.get("PORT", 8765)
-CONFIG = os.environ.get("CONFIG_PATH", "config.yaml")
-
-with open(CONFIG, "r") as f:
-    raw = yaml.safe_load(f)
-    config = Config(**raw)
+from master.src.config import config
+from master.src.constants import PORT
+from shared.message import RegisterWorker, parse_message
 
 
 async def handler(websocket: WebSocketServerProtocol):
     worker = Client(websocket)
-    logger.info(
-        f"Registering new worker node with an ID of {worker.id()} (Remote IP: {worker.remote_address()})")
+    logger.info(f"Client ({worker.remote_address()}) connected to websocket")
     try:
         async for message in websocket:
-            await websocket.send(message)
+            msg = parse_message(message)
+            if isinstance(msg, RegisterWorker):
+                try:
+                    await worker.register()
+                except Exception as e:
+                    logger.error(
+                        f"Failed to register worker. (Remote IP: {worker.remote_address()})")
+                    print(e)
+                    break
+            else:
+                await websocket.send(message)
     except ConnectionClosed:
         logger.info(
             f"Worker {worker.id()} disconnected. (Remote IP: {worker.remote_address()})")
