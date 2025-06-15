@@ -60,7 +60,7 @@ class RegisterWorker(EnumSerializer, SerializableBaseModel):
 
 class UpscaleFailed(EnumSerializer, SerializableBaseModel):
     type: Literal[MessageType.UPSCALE_FAILED] = MessageType.UPSCALE_FAILED
-    reason: str  # path to the file that failed
+    path: str  # path to the file that failed
     code: int  # os error code
     sender: Sender = "worker"
 
