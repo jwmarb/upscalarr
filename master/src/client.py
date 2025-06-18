@@ -1,25 +1,40 @@
+import asyncio
 from websockets.legacy.server import WebSocketServerProtocol
-from typing import Set, Self
-
-from shared.message import RegisterWorker
+from typing import Self
+from shared.message import Message, RegisterWorker, IsWorkerAvailable
 from .logger import logger
+from collections import deque
 
 
 class Client:
-    _connected_clients: Set[Self] = set()
+    _connected_clients: set[Self] = set()
 
     @staticmethod
-    async def broadcast(data):
+    async def broadcast(data: Message):
         for c in Client.clients():
-            await c._websocket.send(data)
+            await c.send_message(data)
 
     @staticmethod
     def clients():
         return Client._connected_clients
 
+    def from_websocket(websocket: WebSocketServerProtocol):
+        for c in Client.clients():
+            if c._websocket.id == c._websocket.id:
+                return c
+
+        return None
+
     def __init__(self, websocket: WebSocketServerProtocol):
         self._id: int = -1
         self._websocket = websocket
+        self._is_available = True
+
+    def is_available(self):
+        return self._is_available
+
+    def handle_event(self, event):
+        pass
 
     async def register(self):
         self._id = len(Client._connected_clients)
@@ -41,3 +56,6 @@ class Client:
             host, port = self._websocket.remote_address
             return f"{host}:{port}"
         return None
+
+    async def send_message(self, msg: Message):
+        await self._websocket.send(msg.serialize())

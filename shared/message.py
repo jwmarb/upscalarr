@@ -39,16 +39,51 @@ class SerializableBaseModel(BaseModel):
 
 class MessageType(Enum):
     REGISTER_WORKER = auto()
-    RECV_UPSCALING = auto()
+    IS_WORKER_AVAILABLE = auto()
     UPSCALE_FAILED = auto()
+    SOURCE_MODIFIED_OR_DELETED = auto()
+    ADD_UPSCALE_JOB = auto()
+    ADD_UPSCALE_JOB_IN_PROGRESS = auto()
+    UPSCALE_JOB_COMPLETE = auto()
 
     def __str__(self):
         return self.name
 
 
-class ReceiveUpscaling(EnumSerializer, SerializableBaseModel):
-    type: Literal[MessageType.RECV_UPSCALING] = MessageType.RECV_UPSCALING
-    files: list[str]  # list of files being upscaled
+class UpscaleJobComplete(EnumSerializer, SerializableBaseModel):
+    type: Literal[MessageType.UPSCALE_JOB_COMPLETE] = MessageType.UPSCALE_JOB_COMPLETE
+    is_success: bool
+    worker_id: int
+    dest_path: str
+    src_path: str
+    sender: Sender = 'worker'
+
+
+class AddUpscaleJobInProgress(EnumSerializer, SerializableBaseModel):
+    type: Literal[MessageType.ADD_UPSCALE_JOB_IN_PROGRESS] = MessageType.ADD_UPSCALE_JOB_IN_PROGRESS
+    src_path: str
+    dest_path: str
+    worker_id: int
+    pid: int
+    sender: Sender = 'worker'
+
+
+class AddUpscaleJob(EnumSerializer, SerializableBaseModel):
+    type: Literal[MessageType.ADD_UPSCALE_JOB] = MessageType.ADD_UPSCALE_JOB
+    file: str
+    sender: Sender = 'master'
+
+
+class SourceModifiedOrDeleted(EnumSerializer, SerializableBaseModel):
+    type: Literal[MessageType.SOURCE_MODIFIED_OR_DELETED] = MessageType.SOURCE_MODIFIED_OR_DELETED
+    file: str
+    sender: Sender = 'master'
+
+
+class IsWorkerAvailable(EnumSerializer, SerializableBaseModel):
+    type: Literal[MessageType.IS_WORKER_AVAILABLE] = MessageType.IS_WORKER_AVAILABLE
+    is_available: bool | None = None
+    worker_id: int | None = None
     sender: Sender
 
 
@@ -65,8 +100,8 @@ class UpscaleFailed(EnumSerializer, SerializableBaseModel):
     sender: Sender = "worker"
 
 
-Message = Annotated[Union[RegisterWorker, ReceiveUpscaling,
-                          UpscaleFailed], Field(discriminator="type")]
+Message = Annotated[Union[RegisterWorker, IsWorkerAvailable,
+                          UpscaleFailed, AddUpscaleJob, SourceModifiedOrDeleted, AddUpscaleJobInProgress, UpscaleJobComplete], Field(discriminator="type")]
 
 
 def parse_message(msg_json_str: str):

@@ -1,4 +1,4 @@
-from shared.message import MessageType, RegisterWorker, UpscaleFailed, parse_message, ReceiveUpscaling
+from shared.message import MessageType, RegisterWorker, UpscaleFailed, parse_message, IsWorkerAvailable
 
 mock_json_obj = "{\"type\":\"" + \
     str(MessageType.REGISTER_WORKER) + "\",\"sender\":\"worker\"}"
@@ -17,26 +17,14 @@ def test_register_worker_deserialization():
         type=MessageType.REGISTER_WORKER)
 
 
-def test_receive_upscaling_serialization_deserialization():
-    files = ["foo.png", "bar.png"]
-    json_msg = '{"type":"RECV_UPSCALING","files":["foo.png","bar.png"],"sender":"worker"}'
-    data2 = parse_message(json_msg)
-    assert data2 == ReceiveUpscaling(
-        type=MessageType.RECV_UPSCALING, files=files, sender="worker")
-    assert ReceiveUpscaling.model_validate_json(json_msg) == ReceiveUpscaling(
-        type=MessageType.RECV_UPSCALING, files=files, sender="worker")
-    assert ReceiveUpscaling(type=MessageType.RECV_UPSCALING,
-                            files=files, sender="worker").serialize() == json_msg
-
-
 def test_upscale_failed_serialization_deserialization():
     json_msg = '{"type":"UPSCALE_FAILED","reason":"bad/file/path.png","code":42,"sender":"worker"}'
     # Serialization
     assert UpscaleFailed(type=MessageType.UPSCALE_FAILED,
-                         reason="bad/file/path.png", code=42, sender="worker").serialize() == json_msg
+                         path="bad/file/path.png", code=42, sender="worker").serialize() == json_msg
     # Deserialization
     assert UpscaleFailed.model_validate_json(json_msg) == UpscaleFailed(
-        type=MessageType.UPSCALE_FAILED, reason="bad/file/path.png", code=42, sender="worker"
+        type=MessageType.UPSCALE_FAILED, path="bad/file/path.png", code=42, sender="worker"
     )
     assert parse_message(json_msg) == UpscaleFailed(
-        type=MessageType.UPSCALE_FAILED, reason="bad/file/path.png", code=42, sender="worker")
+        type=MessageType.UPSCALE_FAILED, path="bad/file/path.png", code=42, sender="worker")

@@ -7,6 +7,7 @@ class Config(BaseModel):
     upscaling: str
     upscaled: str
     source: str
+    cmd: str
 
 
 with open(CONFIG, "r") as f:

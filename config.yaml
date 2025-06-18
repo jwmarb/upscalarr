@@ -1,3 +1,4 @@
-upscaling: /upscaling
-upscaled: /mnt/upscaled
-source: /mnt/SanDisk/needs_upscaling
+upscaling: /home/joseph/upscalarr/upscaling
+upscaled: /home/joseph/upscalarr/upscaled
+source: /home/joseph/upscalarr/source
+cmd: "video2x -w 3840 -h 2160 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
