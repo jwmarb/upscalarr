@@ -13,6 +13,13 @@ from master.src.constants import PORT
 from shared.message import AddUpscaleJobInProgress, RegisterWorker, UpscaleJobComplete, parse_message, IsWorkerAvailable
 import os
 
+failed_upscales: dict[str, int] = {}
+
+
+def write_errored_upscale(failed_upscale_path: str):
+    with open(config.error_upscales, 'a' if os.path.exists(config.error_upscales) else 'w') as f:
+        f.write(failed_upscale_path + '\n')
+
 
 async def handler(websocket: WebSocketServerProtocol):
     worker = Client(websocket)
@@ -33,15 +40,40 @@ async def handler(websocket: WebSocketServerProtocol):
                 upscale_job = UpscaleJob(
                     src_file=msg.src_path, dest_file=msg.dest_path, pid=msg.pid, worker=worker)
                 ChangeHandler.add_upscale_job(upscale_job)
+                worker.add_upscale_job()
             elif isinstance(msg, UpscaleJobComplete):
                 ChangeHandler.remove_upscale_job(msg.src_path)
+                worker = Client.from_id(msg.worker_id)
+                worker.upscale_job_finished()
                 if msg.is_success:
+                    if msg.src_path in failed_upscales:
+                        del failed_upscales[msg.src_path]
                     logger.info(
                         f"Finished upscaling \"{msg.src_path}\". Wrote to {msg.dest_path}")
+                    if worker != None and not worker.is_available():
+                        logger.info(
+                            f"Worker {msg.worker_id} is now accepting upscales.")
+                        worker.set_availability(True)
                 else:
+                    failed_upscales[msg.src_path] = (
+                        failed_upscales[msg.src_path] + 1) if msg.src_path in failed_upscales else 1
                     logger.info(
-                        f"Upscale failed. Adding it back to the queue for another upscale attempt.")
-                    ChangeHandler.queue_upscale(msg.src_path)
+                        f"Upscale failed. Adding it back to the queue for another upscale attempt...")
+                    if worker != None and worker.is_available():
+                        logger.info(
+                            f"Worker {msg.worker_id} will not be available until it has completed an upscale.")
+                        worker.set_availability(False)
+                    elif worker != None and worker.upscaling_tasks() == 0:
+                        # If all upscales happened to fail, then it doesn't have anything going on right now. Then, it must be available.
+                        worker.set_availability(True)
+                    if os.path.exists(msg.src_path):
+                        if failed_upscales[msg.src_path] < config.max_reattempts:
+                            ChangeHandler.queue_upscale(msg.src_path)
+                        else:
+                            write_errored_upscale(msg.src_path)
+                    else:
+                        logger.error(
+                            f"Could not find {msg.src_path}. Perhaps something deleted it, somehow?")
     except ConnectionClosed:
         logger.info(
             f"Worker {worker.id()} disconnected. (Remote IP: {worker.remote_address()})")

@@ -8,6 +8,8 @@ class Config(BaseModel):
     upscaled: str
     source: str
     cmd: str
+    max_reattempts: int
+    error_upscales: str
 
 
 with open(CONFIG, "r") as f:

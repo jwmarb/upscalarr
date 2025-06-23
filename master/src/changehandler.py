@@ -1,9 +1,10 @@
 import asyncio
-from collections import deque
+from master.src.hashed_queue import HashedQueue
 import os
 
 from pydantic import BaseModel
 
+from master.src.config import config
 from master.src.logger import logger
 from shared.message import AddUpscaleJob, IsWorkerAvailable, SourceModifiedOrDeleted
 from .client import Client
@@ -31,7 +32,7 @@ class UpscaleJob(BaseModel):
 
 class ChangeHandler(FileSystemEventHandler):
     _upscale_jobs: list[UpscaleJob] = []
-    _upscale_queue: deque[str] = deque()
+    _upscale_queue: HashedQueue[str] = HashedQueue()
 
     def has_upscale_jobs(worker: Client):
         for job in ChangeHandler._upscale_jobs:
@@ -63,9 +64,15 @@ class ChangeHandler(FileSystemEventHandler):
         """
         Will add an upscale, assigning it to whatever worker node is available.
         """
-        ChangeHandler._upscale_queue.appendleft(file_path)
+        ChangeHandler._upscale_queue.enqueue(file_path)
 
     def queue_listener(self) -> None:
+        # upon initialization, check for existing source files and add them to the queue
+        existing_files = Path(config.source).rglob("*")
+        for f in existing_files:
+            if f.is_file():
+                logger.info(f"Tracking {f}")
+                ChangeHandler.queue_upscale(str(f))
         while True:
             # iterate through each upscale, and for each iteration, iterate through all available clients
             # a client is considered unavailable when at least one upscale job has failed
@@ -73,7 +80,7 @@ class ChangeHandler(FileSystemEventHandler):
             while len(ChangeHandler._upscale_queue) > 0:
                 for client in Client.clients():
                     if client.is_available():
-                        file_path = ChangeHandler._upscale_queue.pop()
+                        file_path = ChangeHandler._upscale_queue.dequeue()
                         logger.info(
                             f"Creating upscale job ({file_path}) on Worker {client.id()}")
                         asyncio.run_coroutine_threadsafe(client.send_message(
@@ -90,10 +97,17 @@ class ChangeHandler(FileSystemEventHandler):
         # logger.info(message)
         file = Path(event.dest_path)
         # if event.event_type == DELETED:
-        if event.event_type == CREATED or event.event_type == MODIFIED or event.event_type == MOVED:
+        # print(message)
+        if event.event_type == CREATED or event.event_type == MODIFIED or event.event_type == MOVED or event.event_type == CLOSED:
+            if event.event_type == CREATED:
+                file = Path(event.src_path)
             if file.suffix in file_extensions:
                 logger.info(f"Tracking {file}")
-                ChangeHandler.queue_upscale(event.dest_path)
+                if event.event_type == CLOSED or event.event_type == CREATED:
+                    ChangeHandler.queue_upscale(event.src_path)
+                else:
+                    ChangeHandler.queue_upscale(event.dest_path)
+
         elif event.event_type == DELETED:
             logger.info(f"File deleted ({event.src_path})")
             asyncio.run_coroutine_threadsafe(Client.broadcast(

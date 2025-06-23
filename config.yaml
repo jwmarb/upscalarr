@@ -1,4 +1,7 @@
 upscaling: /home/joseph/upscalarr/upscaling
 upscaled: /home/joseph/upscalarr/upscaled
 source: /home/joseph/upscalarr/source
-cmd: "video2x -w 3840 -h 2160 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
+# cmd: "video2x -w 2560 -h 1440 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
+cmd: "video2x -s 2 -p realcugan --realcugan-model models-pro"
+max_reattempts: 3
+error_upscales: /home/joseph/upscalarr/error_upscales.txt

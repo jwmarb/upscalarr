@@ -18,6 +18,7 @@ class Client:
     def clients():
         return Client._connected_clients
 
+    @staticmethod
     def from_websocket(websocket: WebSocketServerProtocol):
         for c in Client.clients():
             if c._websocket.id == c._websocket.id:
@@ -25,10 +26,33 @@ class Client:
 
         return None
 
+    @staticmethod
+    def from_id(id: int):
+        if id == -1:
+            return None
+        for c in Client.clients():
+            if c._id == id:
+                return c
+
+        return None
+
+    def set_availability(self, availability: bool):
+        self._is_available = availability
+
     def __init__(self, websocket: WebSocketServerProtocol):
         self._id: int = -1
         self._websocket = websocket
         self._is_available = True
+        self._upscaling_tasks = 0
+
+    def add_upscale_job(self):
+        self._upscaling_tasks += 1
+
+    def upscale_job_finished(self):
+        self._upscaling_tasks -= 1
+
+    def upscaling_tasks(self):
+        return self._upscaling_tasks
 
     def is_available(self):
         return self._is_available
