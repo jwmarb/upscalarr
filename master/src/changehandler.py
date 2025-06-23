@@ -1,4 +1,5 @@
 import asyncio
+import time
 from master.src.hashed_queue import HashedQueue
 import os
 
@@ -86,6 +87,8 @@ class ChangeHandler(FileSystemEventHandler):
                         asyncio.run_coroutine_threadsafe(client.send_message(
                             AddUpscaleJob(file=file_path)), self._loop)
                         break
+                time.sleep(0.1)
+            time.sleep(0.1)
 
     def on_any_event(self, event: FileSystemEvent):
         if event.is_directory:
