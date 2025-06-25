@@ -2,6 +2,7 @@ upscaling: /home/joseph/upscalarr/upscaling
 upscaled: /home/joseph/upscalarr/upscaled
 source: /home/joseph/upscalarr/source
 # cmd: "video2x -w 2560 -h 1440 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
-cmd: "video2x -s 2 -p realcugan --realcugan-model models-pro"
+cmd: "video2x -p realcugan --realcugan-model models-pro -s 2 --pix-fmt yuv420p10le -e qp=0 -e preset=veryslow -e tune=animation -e x264-params=\"keyint=240:bframes=6:ref=4:me=umh:subme=9:no-fast-pskip=1:b-adapt=2:aq-mode=2\""
 max_reattempts: 3
+max_upscale_tasks: 2
 error_upscales: /home/joseph/upscalarr/error_upscales.txt

@@ -28,7 +28,7 @@ async def handle_upscale_job(msg: AddUpscaleJob, websocket: ClientConnection, wo
                parents=True, exist_ok=True)
     dest_path = upscaling_prog_folder / \
         src_path.name.replace("1080p", "2160p")
-    proc = await asyncio.create_subprocess_shell(f"{config.cmd} -i \"{msg.file}\" -o \"{dest_path}\"", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    proc = await asyncio.create_subprocess_shell(f"{config.cmd} -i \"{msg.file}\" -o \"{dest_path}\"", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, stdin=asyncio.subprocess.DEVNULL)
     # print(f"pid: {proc.pid}")
     src_pids[msg.file] = proc.pid
     await websocket.send(AddUpscaleJobInProgress(pid=proc.pid, worker_id=worker_id, src_path=str(src_path), dest_path=str(dest_path)).serialize())

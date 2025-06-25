@@ -10,6 +10,7 @@ class Config(BaseModel):
     cmd: str
     max_reattempts: int
     error_upscales: str
+    max_upscale_tasks: int
 
 
 with open(CONFIG, "r") as f:

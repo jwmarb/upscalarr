@@ -4,6 +4,7 @@ from typing import Self
 from shared.message import Message, RegisterWorker, IsWorkerAvailable
 from .logger import logger
 from collections import deque
+from master.src.config import config
 
 
 class Client:
@@ -55,7 +56,7 @@ class Client:
         return self._upscaling_tasks
 
     def is_available(self):
-        return self._is_available
+        return self._is_available and self.upscaling_tasks() < config.max_upscale_tasks
 
     def handle_event(self, event):
         pass
