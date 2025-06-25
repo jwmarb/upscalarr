@@ -17,6 +17,8 @@ failed_upscales: dict[str, int] = {}
 
 
 def write_errored_upscale(failed_upscale_path: str):
+    logger.warning(
+        f"{failed_upscale_path} has reattempted {config.max_reattempts} times but failed all of them. It will be skipped!")
     with open(config.error_upscales, 'a' if os.path.exists(config.error_upscales) else 'w') as f:
         f.write(failed_upscale_path + '\n')
 
