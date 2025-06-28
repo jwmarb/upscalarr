@@ -71,7 +71,7 @@ class ChangeHandler(FileSystemEventHandler):
         # upon initialization, check for existing source files and add them to the queue
         existing_files = Path(config.source).rglob("*")
         for f in existing_files:
-            if f.is_file():
+            if f.is_file() and f.suffix in file_extensions:
                 logger.info(f"Tracking {f}")
                 ChangeHandler.queue_upscale(str(f))
         while True:
