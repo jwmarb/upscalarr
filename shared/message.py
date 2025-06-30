@@ -39,7 +39,6 @@ class SerializableBaseModel(BaseModel):
 
 class MessageType(Enum):
     REGISTER_WORKER = auto()
-    IS_WORKER_AVAILABLE = auto()
     UPSCALE_FAILED = auto()
     SOURCE_MODIFIED_OR_DELETED = auto()
     ADD_UPSCALE_JOB = auto()
@@ -80,13 +79,6 @@ class SourceModifiedOrDeleted(EnumSerializer, SerializableBaseModel):
     sender: Sender = 'master'
 
 
-class IsWorkerAvailable(EnumSerializer, SerializableBaseModel):
-    type: Literal[MessageType.IS_WORKER_AVAILABLE] = MessageType.IS_WORKER_AVAILABLE
-    is_available: bool | None = None
-    worker_id: int | None = None
-    sender: Sender
-
-
 class RegisterWorker(EnumSerializer, SerializableBaseModel):
     type: Literal[MessageType.REGISTER_WORKER] = MessageType.REGISTER_WORKER
     sender: Sender
@@ -100,7 +92,7 @@ class UpscaleFailed(EnumSerializer, SerializableBaseModel):
     sender: Sender = "worker"
 
 
-Message = Annotated[Union[RegisterWorker, IsWorkerAvailable,
+Message = Annotated[Union[RegisterWorker,
                           UpscaleFailed, AddUpscaleJob, SourceModifiedOrDeleted, AddUpscaleJobInProgress, UpscaleJobComplete], Field(discriminator="type")]
 
 

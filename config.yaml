@@ -1,8 +1,58 @@
-upscaling: /home/joseph/upscalarr/upscaling
-upscaled: /home/joseph/upscalarr/upscaled
-source: /home/joseph/upscalarr/source
-# cmd: "video2x -w 2560 -h 1440 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
-cmd: "video2x -p realcugan --realcugan-model models-pro -s 2 --pix-fmt yuv420p10le -e qp=0 -e preset=veryslow -e tune=animation -e x264-params=\"keyint=240:bframes=6:ref=4:me=umh:subme=9:no-fast-pskip=1:b-adapt=2:aq-mode=2\""
-max_reattempts: 3
-max_upscale_tasks: 2
-error_upscales: /home/joseph/upscalarr/error_upscales.txt
+folders:
+  # A list of directories to perform upscaling on
+  # The proper format for the subfolders within "src" is "series/season/episode"
+  # The work directory is where video2x will write its ongoing upscales to
+  # Finished upscales (ones that completed without fatal errors) will be written to "out"
+  - src: /home/joseph/upscalarr/source
+    work: /home/joseph/upscalarr/upscaling
+    out: /home/joseph/upscalarr/upscaled
+
+master:
+  listener:
+    # The interface where the master node should listen in (0.0.0.0 for everything)
+    ip: 0.0.0.0
+
+    # The port of the master node
+    port: 8765
+
+  # Number of reattempts before considering an upscale as failed
+  max_retries: 3
+  
+  # Number of upscales per worker node
+  max_concurrent_tasks: 1
+
+  # The video extensions to track for upscaling
+  allowed_extensions:
+    - mkv
+    - mp4
+    - avi
+
+  logs:
+    # The path where a list of failed upscales should be written 
+    failed: /home/joseph/upscalarr/error_upscales.txt
+worker:
+  # Your video2x command (without -i and -o) that will be run to perform the upscale job
+  #
+  # Best settings for quality (very hardware intensive)
+  # video2x: "video2x -p realcugan --realcugan-model models-pro -s 2 -e crf=15 -e preset=4 -c libsvtav1 -e svtav1-params=\"tune=0:enable-overlays=1:scd=1:film-grain=0:film-grain-denoise=0:enable-qm=1:qm-min=0:tile-rows=3:tile-columns=2\" --pix-fmt yuv420p10le"
+  #
+  # "Better than nothing" quality
+  # video2x: "video2x -w 2560 -h 1440 -p libplacebo --libplacebo-shader anime4k-v4-a+a"
+  #
+  #
+  # Your video2x command for different resolutions
+  video2x:
+    default: "video2x -p realcugan --realcugan-model models-pro -s 2 -e crf=15 -e preset=4 -c libsvtav1 -e svtav1-params=\"tune=0:enable-overlays=1:scd=1:film-grain=0:film-grain-denoise=0:enable-qm=1:qm-min=0:tile-rows=3:tile-columns=2\" --pix-fmt yuv420p10le"
+    1080p: "video2x -p realcugan --realcugan-model models-pro -s 2 -e crf=15 -e preset=4 -c libsvtav1 -e svtav1-params=\"tune=0:enable-overlays=1:scd=1:film-grain=0:film-grain-denoise=0:enable-qm=1:qm-min=0:tile-rows=3:tile-columns=2\" --pix-fmt yuv420p10le"
+    720p: "video2x -p realcugan --realcugan-model models-pro -s 3 -e crf=15 -e preset=4 -c libsvtav1 -e svtav1-params=\"tune=0:enable-overlays=1:scd=1:film-grain=0:film-grain-denoise=0:enable-qm=1:qm-min=0:tile-rows=3:tile-columns=2\" --pix-fmt yuv420p10le"
+
+  # Deletes the source file after it has been successfully upscaled
+  delete_on_completion: True
+
+  # Rename the upscaled file to have matching profile tags (2160p, x264, etc.)
+  rename_output: True
+
+  # Settings to connect to master node
+  master_host:
+    ip: localhost
+    port: 8765

@@ -1,15 +1,12 @@
 import asyncio
 import time
 from master.src.hashed_queue import HashedQueue
-import os
-
 from pydantic import BaseModel
-
-from master.src.config import config
+from shared.config import config
 from master.src.logger import logger
-from shared.message import AddUpscaleJob, IsWorkerAvailable, SourceModifiedOrDeleted
+from shared.message import AddUpscaleJob, SourceModifiedOrDeleted
 from .client import Client
-from watchdog.events import FileSystemEventHandler, FileSystemEvent, FileMovedEvent
+from watchdog.events import FileSystemEventHandler, FileSystemEvent
 from pathlib import Path
 
 CREATED = "created"
@@ -20,7 +17,7 @@ CLOSED_NO_WRITE = "closed_no_write"
 DELETED = "deleted"
 MOVED = "moved"
 
-file_extensions = set([".mkv", ".avi", ".mp4"])
+file_extensions = set([f'.{ext}' for ext in config.master.allowed_extensions])
 
 
 class UpscaleJob(BaseModel):
@@ -69,7 +66,8 @@ class ChangeHandler(FileSystemEventHandler):
 
     def queue_listener(self) -> None:
         # upon initialization, check for existing source files and add them to the queue
-        existing_files = Path(config.source).rglob("*")
+        existing_files = [
+            file for folder in config.folders for file in Path(folder.src).rglob("*")]
         for f in existing_files:
             if f.is_file() and f.suffix in file_extensions:
                 logger.info(f"Tracking {f}")
@@ -113,6 +111,7 @@ class ChangeHandler(FileSystemEventHandler):
 
         elif event.event_type == DELETED:
             logger.info(f"File deleted ({event.src_path})")
+            ChangeHandler.remove_upscale_job(event.src_path)
             asyncio.run_coroutine_threadsafe(Client.broadcast(
                 SourceModifiedOrDeleted(file=event.src_path)), self._loop)
 
